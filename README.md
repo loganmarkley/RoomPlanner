@@ -1,2 +1,8 @@
-# RoomPlanner
-Using Python and the pygame library, I plan to make a fully functioning room planner! It will be blueprint style in which you have an overhead view.
+# Room Planner!
+Using Python and the pygame library, I plan to make a fully functioning room planner! It will be blueprint style in which you have an overhead view, and you can change the size of the walls, add vertices to your walls to make them exactly how your room is, and even add furniture. You can resize everything, zoom in and out, and more.
+
+## Date Started: 8/2/2023
+This is probably the biggest project that I have taken on so far, with my website being a close second. I am very excited to progress through the development!
+
+## Current State:
+![](https://github.com/loganmarkley/RoomPlanner/blob/main/current_state.gif?raw=true)
