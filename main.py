@@ -1,16 +1,16 @@
 # Room Planner!
 # Author: Logan Markley
-# Last Updated: 8/2/2023
+# Last Updated: 8/3/2023
 # Version: Not Finished
-# Latest Addition: Able to move vertices by dragging and dropping and the "walls" automatically update
+# Latest Addition: Added a plus and minus button to add and remove vertices
 # Date Started: 8/2/2023
 # Desc: Using Pygame and maybe Pickle, create a fully functioning room planner
 #       where you can drag and drop items, customize dimensions, etc.
 
-import pygame, sys, pickle
+import pygame, sys
 
 
-def draw_line(vertex1, vertex2) -> None:    # this static function allows for easy color changing and simpler lines
+def draw_line(vertex1, vertex2) -> None:  # this static function allows for easy color changing and simpler lines
     offset = pygame.math.Vector2(8, 8)  # 8 comes from the radius of the vertices
     vertex1_vector = pygame.math.Vector2(vertex1.rect.x, vertex1.rect.y) + offset
     vertex2_vector = pygame.math.Vector2(vertex2.rect.x, vertex2.rect.y) + offset
@@ -20,9 +20,17 @@ def draw_line(vertex1, vertex2) -> None:    # this static function allows for ea
 
 
 def draw_grid() -> None:
-    for i in range(0, 80):      # draws horizontal lines and then vertical lines
+    for i in range(0, 80):  # draws horizontal lines and then vertical lines with 15 pixel gaps
         pygame.draw.line(screen, (230, 230, 230), (0, i * 15), (SCREEN_WIDTH, i * 15))
         pygame.draw.line(screen, (230, 230, 230), (i * 15, 0), (i * 15, SCREEN_HEIGHT))
+
+
+def draw_add_vertex_button(rect) -> None:       #makes a green button in bottom right corner
+    pygame.draw.rect(screen, (100, 200, 100), rect)
+
+
+def draw_minus_vertex_button(rect) -> None:     # makes a red button in bottom right corner
+    pygame.draw.rect(screen, (200, 100, 100), rect)
 
 
 class Room:
@@ -48,6 +56,16 @@ class Room:
     def draw_vertices(self) -> None:
         for i in range(0, len(self.wall_vertices)):
             self.wall_vertices[i].draw_vertex()
+
+    def add_vertex(self) -> None:
+        length = len(self.wall_vertices)
+        x_pos = (self.wall_vertices[0].rect.x + self.wall_vertices[length - 1].rect.x) // 2
+        y_pos = (self.wall_vertices[0].rect.y + self.wall_vertices[length - 1].rect.y) // 2
+        self.wall_vertices.append(Vertex(x_pos, y_pos))
+
+    def minus_vertex(self) -> None:
+        if len(self.wall_vertices) > 2:
+            self.wall_vertices.pop(len(self.wall_vertices) - 1)
 
 
 class Vertex:
@@ -102,10 +120,12 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
 
 SCREEN_UPDATE = pygame.USEREVENT
-pygame.time.set_timer(SCREEN_UPDATE, 100)
+pygame.time.set_timer(SCREEN_UPDATE, 150)
 
 room = Room()
 active_vertex_index = -1
+add_vertex_rect = pygame.Rect(SCREEN_WIDTH - 75, SCREEN_HEIGHT - 75, 50, 50)
+minus_vertex_rect = pygame.Rect(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 75, 50, 50)
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -116,6 +136,11 @@ while True:
                 for num, vertex in enumerate(room.wall_vertices):
                     if vertex.rect.collidepoint(event.pos):
                         active_vertex_index = num
+
+                if add_vertex_rect.collidepoint(event.pos):
+                    room.add_vertex()
+                if minus_vertex_rect.collidepoint(event.pos):
+                    room.minus_vertex()
 
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
@@ -132,6 +157,8 @@ while True:
     draw_grid()
     room.draw_walls()
     room.draw_vertices()
+    draw_add_vertex_button(add_vertex_rect)
+    draw_minus_vertex_button(minus_vertex_rect)
 
     pygame.display.update()
     clock.tick(60)
