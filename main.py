@@ -2,7 +2,7 @@
 # Author: Logan Markley
 # Last Updated: 8/4/2023
 # Version: Not Finished
-# Latest Addition: Added furniture panel and text to the buttons, and some other small changes
+# Latest Addition: Added hand-made furniture icons
 # Date Started: 8/2/2023
 # Desc: Using Pygame and maybe Pickle, create a fully functioning room planner
 #       where you can drag and drop items, customize dimensions, etc.
@@ -25,7 +25,7 @@ def calculate_distance(vertex1, vertex2) -> int:  # returns the distance between
     x_difference = vertex1.rect.x - vertex2.rect.x
     y_difference = vertex1.rect.y - vertex2.rect.y
     hypotenuse = sqrt(x_difference ** 2 + y_difference ** 2)
-    return int(hypotenuse // 4)  # (4px = 1in)
+    return int(hypotenuse // 5)  # (5px = 1in)
 
 
 def calculate_halfway_point(vertex1, vertex2) -> tuple:
@@ -37,8 +37,8 @@ def calculate_halfway_point(vertex1, vertex2) -> tuple:
 class Room:
     def __init__(self):
         self.vertex1 = Vertex(700, 300)
-        self.vertex2 = Vertex(1100, 300)
-        self.vertex3 = Vertex(1100, 600)
+        self.vertex2 = Vertex(1105, 300)
+        self.vertex3 = Vertex(1105, 600)
         self.vertex4 = Vertex(700, 600)
 
         self.wall_vertices = [self.vertex1, self.vertex2, self.vertex3, self.vertex4]
@@ -142,6 +142,16 @@ class UserInterface:
             rect = pygame.Rect(0, 55 + quarter_height * i, self.FURNITURE_PANEL_WIDTH, 2)
             pygame.draw.rect(screen, (180, 180, 180), rect)
 
+        # drawing the furniture images:
+        screen.blit(pygame.transform.scale_by(BED_IMG, .3), (40, 90))
+        screen.blit(pygame.transform.scale_by(DESK_IMG, .16), (222, 118))
+        screen.blit(pygame.transform.scale_by(NIGHTSTAND_IMG, .18), (43, 345))
+        screen.blit(pygame.transform.scale_by(RUG_IMG, .15), (228, 355))
+        screen.blit(pygame.transform.scale_by(DRESSER_IMG, .151), (27, 575))
+        screen.blit(pygame.transform.scale_by(CHAIR_IMG, .18), (244, 570))
+        screen.blit(pygame.transform.scale_by(TV_IMG, .16), (18, 804))
+        screen.blit(pygame.transform.scale_by(LAMP_IMG, .212), (246, 784))
+
 
 # class CameraGroup(pygame.sprite.Group):
 #     def __init__(self):
@@ -182,7 +192,17 @@ SCREEN_HEIGHT = 950
 SCREEN_BACKGROUND_COLOR = (240, 240, 230)
 VERTEX_RADIUS = 7
 
+
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+BED_IMG = pygame.image.load('Graphics/Bed.png').convert_alpha()
+DESK_IMG = pygame.image.load('Graphics/Desk.png').convert_alpha()
+NIGHTSTAND_IMG = pygame.image.load('Graphics/Nightstand.png').convert_alpha()
+RUG_IMG = pygame.image.load('Graphics/Rug.png').convert_alpha()
+DRESSER_IMG = pygame.image.load('Graphics/Dresser.png').convert_alpha()
+CHAIR_IMG = pygame.image.load('Graphics/Chair.png').convert_alpha()
+TV_IMG = pygame.image.load('Graphics/TV.png').convert_alpha()
+LAMP_IMG = pygame.image.load('Graphics/Lamp1.png').convert_alpha()
 
 clock = pygame.time.Clock()
 
@@ -198,6 +218,7 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 for num, vertex in enumerate(room.wall_vertices):
