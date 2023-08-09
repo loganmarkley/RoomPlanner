@@ -1,10 +1,10 @@
 # Room Planner!
 # Author: Logan Markley
-# Last Updated: 8/7/2023
-# Version: Not Finished
-# Latest Addition: Added ability to rotate, scale, and delete furniture
+# Last Updated: 8/9/2023
+# Version: 1.0
+# Latest Addition: furniture has dimensions, furniture and vertices "snap" into horizontal or vertical positions!
 # Date Started: 8/2/2023
-# Desc: Using Pygame, create a fully functioning room planner
+# Desc: Completely independent project: Using Pygame, create a fully functioning room planner
 #       where you can drag and drop items, customize dimensions, etc.
 
 from sys import exit
@@ -30,7 +30,7 @@ def calculate_distance(vertex1, vertex2) -> int:  # returns the distance between
     return int(hypotenuse // PIXELS_PER_INCH)
 
 
-def calculate_halfway_point(vertex1, vertex2) -> tuple:
+def calculate_halfway_point(vertex1, vertex2) -> tuple:  # can only be used with vertices
     x_pos = (vertex1.rect.centerx + vertex2.rect.centerx) // 2
     y_pos = (vertex1.rect.centery + vertex2.rect.centery) // 2
     return x_pos, y_pos
@@ -91,6 +91,7 @@ class Room:
             self.furniture_pieces[i].draw_furniture()
         if draw_overlay:
             self.furniture_pieces[overlay_index].draw_furn_overlay()
+            self.furniture_pieces[overlay_index].draw_furn_dimensions()
 
 
 class Vertex:
@@ -135,14 +136,48 @@ class Furniture:
         self.delete_btn_img = pygame.image.load('Graphics/red_x_circle.png').convert_alpha()
         self.delete_btn_rect = self.delete_btn_img.get_rect()
 
+        self.width_btn_img = pygame.image.load('Graphics/width_arrow.png').convert_alpha()
+        self.width_btn_rect = self.width_btn_img.get_rect()
+        self.height_btn_img = pygame.image.load('Graphics/height_arrow.png').convert_alpha()
+        self.height_btn_rect = self.height_btn_img.get_rect()
+
     def draw_furniture(self) -> None:
         screen.blit(self.img, self.rect.topleft)
 
     def draw_furn_overlay(self) -> None:
         self.rotate_btn_rect.topleft = self.rect.bottomright
         screen.blit(self.rotate_btn_img, self.rotate_btn_rect.topleft)
-        self.delete_btn_rect.topleft = self.rect.topright
+        self.delete_btn_rect.bottomleft = self.rect.topright
         screen.blit(self.delete_btn_img, self.delete_btn_rect.topleft)
+        self.width_btn_rect.midleft = self.rect.midright
+        screen.blit(self.width_btn_img, self.width_btn_rect.topleft)
+        self.height_btn_rect.midbottom = self.rect.midtop
+        screen.blit(self.height_btn_img, self.height_btn_rect.topleft)
+
+    def draw_furn_dimensions(self) -> None:
+        f = pygame.font.Font('Fonts/MADEVoyager.otf', 18)
+
+        horiz_distance = str(self.rect.width // PIXELS_PER_INCH) + '"'
+        text_surface = f.render(horiz_distance, True, (100, 100, 100))
+        horiz_halfway_pt = self.rect.width // 2 + self.rect.x, self.rect.height + self.rect.y
+        screen.blit(text_surface, (horiz_halfway_pt[0] - 8, horiz_halfway_pt[1] + 14))  # arbitrary styling numbers
+        pygame.draw.line(screen, (50, 50, 50), (self.rect.x, self.rect.bottom + 14),
+                         (self.rect.right, self.rect.bottom + 14))
+        pygame.draw.line(screen, (50, 50, 50), (self.rect.x, self.rect.bottom + 14),
+                         (self.rect.x, self.rect.bottom + 8))
+        pygame.draw.line(screen, (50, 50, 50), (self.rect.right, self.rect.bottom + 14),
+                         (self.rect.right, self.rect.bottom + 8))
+
+        verti_distance = str(self.rect.height // PIXELS_PER_INCH) + '"'
+        text_surface = f.render(verti_distance, True, (100, 100, 100))
+        verti_halfway_pt = self.rect.x, self.rect.height // 2 + self.rect.y
+        screen.blit(text_surface, (verti_halfway_pt[0] - 40, verti_halfway_pt[1] - 10))  # arbitrary styling numbers
+        pygame.draw.line(screen, (50, 50, 50), (self.rect.x - 14, self.rect.y),
+                         (self.rect.x - 14, self.rect.bottom))
+        pygame.draw.line(screen, (50, 50, 50), (self.rect.x - 14, self.rect.y),
+                         (self.rect.x - 8, self.rect.y))
+        pygame.draw.line(screen, (50, 50, 50), (self.rect.x - 14, self.rect.bottom),
+                         (self.rect.x - 8, self.rect.bottom))
 
     def rotate_furniture(self, mouse) -> None:
         old_center = self.rect.center
@@ -150,10 +185,31 @@ class Furniture:
         y = mouse[1] - self.rect.centery
         d = math.sqrt(x ** 2 + y ** 2)
         angle = math.degrees(-math.atan2(y, x))
+        if -10 < angle < 10:  # these conditionals snap the furniture into a vertical or horizontal position when close!
+            angle = 0
+        elif 80 < angle < 100:
+            angle = 90
+        elif 170 < angle or -170 > angle:
+            angle = 180
+        elif -100 < angle < -80:
+            angle = -90
         scale = abs(3.1 * d / SCREEN_WIDTH)
         self.img = pygame.transform.rotozoom(globals()[self.furn_type.upper() + '_IMG'], angle, scale)
         self.rect = self.img.get_rect()
         self.rect.center = old_center
+
+    def scale_furn_width(self, mouse_relative) -> None:
+        if self.rect.width + mouse_relative[0] > 15:
+            self.rect.width += mouse_relative[0]
+        self.img = pygame.transform.scale(globals()[self.furn_type.upper() + '_IMG'],
+                                          (self.rect.width, self.rect.height))
+
+    def scale_furn_height(self, mouse_relative) -> None:
+        if self.rect.height > mouse_relative[1]:
+            self.rect.top += mouse_relative[1]
+            self.rect.height -= mouse_relative[1]
+        self.img = pygame.transform.scale(globals()[self.furn_type.upper() + '_IMG'],
+                                          (self.rect.width, self.rect.height))
 
 
 class UserInterface:
@@ -270,6 +326,8 @@ ui = UserInterface()
 active_vertex_index = -1
 active_furniture_index = -1
 rotate_furn_btn_held = False
+width_furn_btn_held = False
+height_furn_btn_held = False
 draw_furn_overlay = False
 show_grid_bool = True
 while True:
@@ -286,6 +344,10 @@ while True:
                         draw_furn_overlay = False
                     elif room.furniture_pieces[len(room.furniture_pieces) - 1].rotate_btn_rect.collidepoint(event.pos):
                         rotate_furn_btn_held = True
+                    elif room.furniture_pieces[len(room.furniture_pieces) - 1].width_btn_rect.collidepoint(event.pos):
+                        width_furn_btn_held = True
+                    elif room.furniture_pieces[len(room.furniture_pieces) - 1].height_btn_rect.collidepoint(event.pos):
+                        height_furn_btn_held = True
                     else:
                         draw_furn_overlay = False  # turns off the overlay if the user clicks anywhere besides it
 
@@ -331,16 +393,28 @@ while True:
             if event.button == 1:
                 active_vertex_index = -1
                 active_furniture_index = -1
-            if rotate_furn_btn_held:
                 rotate_furn_btn_held = False
+                width_furn_btn_held = False
+                height_furn_btn_held = False
 
         if event.type == pygame.MOUSEMOTION:
             if active_vertex_index != -1:
                 room.wall_vertices[active_vertex_index].rect.move_ip(event.rel)
-            if active_furniture_index != -1:
+                for i in range(0, len(room.wall_vertices)):
+                    if (room.wall_vertices[i].rect.x - 8 < room.wall_vertices[active_vertex_index].rect.x
+                            < room.wall_vertices[i].rect.x + 8):
+                        room.wall_vertices[active_vertex_index].rect.x = room.wall_vertices[i].rect.x
+                    if (room.wall_vertices[i].rect.y - 8 < room.wall_vertices[active_vertex_index].rect.y
+                            < room.wall_vertices[i].rect.y + 8):
+                        room.wall_vertices[active_vertex_index].rect.y = room.wall_vertices[i].rect.y
+            elif active_furniture_index != -1:
                 room.furniture_pieces[active_furniture_index].rect.move_ip(event.rel)
-            if rotate_furn_btn_held:
+            elif rotate_furn_btn_held:
                 room.furniture_pieces[len(room.furniture_pieces) - 1].rotate_furniture(event.pos)
+            elif width_furn_btn_held:
+                room.furniture_pieces[len(room.furniture_pieces) - 1].scale_furn_width(event.rel)
+            elif height_furn_btn_held:
+                room.furniture_pieces[len(room.furniture_pieces) - 1].scale_furn_height(event.rel)
 
     screen.fill(SCREEN_BACKGROUND_COLOR)
 
