@@ -2,7 +2,7 @@
 # Author: Logan Markley
 # Last Updated: 8/9/2023
 # Version: 1.0
-# Latest Addition: furniture has dimensions, furniture and vertices "snap" into horizontal or vertical positions!
+# Latest Addition: finished product! still a couple of tweaks to be made
 # Date Started: 8/2/2023
 # Desc: Completely independent project: Using Pygame, create a fully functioning room planner
 #       where you can drag and drop items, customize dimensions, etc.
@@ -38,19 +38,20 @@ def calculate_halfway_point(vertex1, vertex2) -> tuple:  # can only be used with
 
 class Room:
     def __init__(self):
-        self.wall_vertices = [Vertex(550, 100), Vertex(1350, 100),
-                              Vertex(1350, 800), Vertex(550, 800)]
+        self.wall_vertices = [Vertex(650, 100), Vertex(1118, 100),
+                              Vertex(1118, 688), Vertex(866, 688),
+                              Vertex(866, 788), Vertex(650, 788)]
         self.furniture_pieces = []
 
     def add_furniture(self, furn_object) -> None:
         self.furniture_pieces.append(furn_object)
 
-    def delete_furniture(self, index) -> None:
-        self.furniture_pieces.pop(index)
+    def delete_furniture(self, ind) -> None:
+        self.furniture_pieces.pop(ind)
 
-    def bring_furn_to_top(self, index) -> int:  # moves the object at index to the end of the list
-        self.furniture_pieces.append(self.furniture_pieces[index])
-        self.furniture_pieces.pop(index)
+    def bring_furn_to_top(self, ind) -> int:  # moves the object at index to the end of the list
+        self.furniture_pieces.append(self.furniture_pieces[ind])
+        self.furniture_pieces.pop(ind)
         return len(self.furniture_pieces) - 1
 
     def add_vertex(self) -> None:
@@ -64,8 +65,8 @@ class Room:
             self.wall_vertices.pop(len(self.wall_vertices) - 1)
 
     def draw_walls(self) -> None:
-        for index in range(len(self.wall_vertices) - 1):
-            draw_line(self.wall_vertices[index], self.wall_vertices[index + 1])
+        for i in range(len(self.wall_vertices) - 1):
+            draw_line(self.wall_vertices[i], self.wall_vertices[i + 1])
         draw_line(self.wall_vertices[len(self.wall_vertices) - 1], self.wall_vertices[0])  # draws the last line
 
     def draw_vertices(self) -> None:
@@ -131,6 +132,11 @@ class Furniture:
         y_pos = random.randint(330, 570)
         self.rect.center = (x_pos, y_pos)
 
+        self.angle = 0
+        self.img_face_up = pygame.transform.rotate(self.img, 180)
+        self.img_face_left = pygame.transform.rotate(self.img, 90)
+        self.img_face_right = pygame.transform.rotate(self.img, -90)
+
         self.rotate_btn_img = pygame.image.load('Graphics/rotate_arrow.png').convert_alpha()
         self.rotate_btn_rect = self.rotate_btn_img.get_rect()
         self.delete_btn_img = pygame.image.load('Graphics/red_x_circle.png').convert_alpha()
@@ -184,32 +190,46 @@ class Furniture:
         x = mouse[0] - self.rect.centerx
         y = mouse[1] - self.rect.centery
         d = math.sqrt(x ** 2 + y ** 2)
-        angle = math.degrees(-math.atan2(y, x))
-        if -10 < angle < 10:  # these conditionals snap the furniture into a vertical or horizontal position when close!
-            angle = 0
-        elif 80 < angle < 100:
-            angle = 90
-        elif 170 < angle or -170 > angle:
-            angle = 180
-        elif -100 < angle < -80:
-            angle = -90
+        self.angle = math.degrees(-math.atan2(y, x))
+        if -10 < self.angle < 10:  # snap the furniture into a vertical or horizontal position when close
+            self.angle = 0
+        elif 80 < self.angle < 100:
+            self.angle = 90
+        elif 170 < self.angle or -170 > self.angle:
+            self.angle = 180
+        elif -100 < self.angle < -80:
+            self.angle = -90
         scale = abs(3.1 * d / SCREEN_WIDTH)
-        self.img = pygame.transform.rotozoom(globals()[self.furn_type.upper() + '_IMG'], angle, scale)
+        self.img = pygame.transform.rotozoom(globals()[self.furn_type.upper() + '_IMG'], self.angle, scale)
         self.rect = self.img.get_rect()
         self.rect.center = old_center
 
     def scale_furn_width(self, mouse_relative) -> None:
         if self.rect.width + mouse_relative[0] > 15:
             self.rect.width += mouse_relative[0]
-        self.img = pygame.transform.scale(globals()[self.furn_type.upper() + '_IMG'],
-                                          (self.rect.width, self.rect.height))
+        if self.angle == 0:
+            self.img = pygame.transform.scale(globals()[self.furn_type.upper() + '_IMG'],
+                                              (self.rect.width, self.rect.height))
+        elif self.angle == 180:
+            self.img = pygame.transform.scale(self.img_face_up, (self.rect.width, self.rect.height))
+        elif self.angle == 90:
+            self.img = pygame.transform.scale(self.img_face_left, (self.rect.width, self.rect.height))
+        elif self.angle == -90:
+            self.img = pygame.transform.scale(self.img_face_right, (self.rect.width, self.rect.height))
 
     def scale_furn_height(self, mouse_relative) -> None:
         if self.rect.height > mouse_relative[1]:
             self.rect.top += mouse_relative[1]
             self.rect.height -= mouse_relative[1]
-        self.img = pygame.transform.scale(globals()[self.furn_type.upper() + '_IMG'],
-                                          (self.rect.width, self.rect.height))
+        if self.angle == 0:
+            self.img = pygame.transform.scale(globals()[self.furn_type.upper() + '_IMG'],
+                                              (self.rect.width, self.rect.height))
+        elif self.angle == 180:
+            self.img = pygame.transform.scale(self.img_face_up, (self.rect.width, self.rect.height))
+        elif self.angle == 90:
+            self.img = pygame.transform.scale(self.img_face_left, (self.rect.width, self.rect.height))
+        elif self.angle == -90:
+            self.img = pygame.transform.scale(self.img_face_right, (self.rect.width, self.rect.height))
 
 
 class UserInterface:
@@ -400,13 +420,14 @@ while True:
         if event.type == pygame.MOUSEMOTION:
             if active_vertex_index != -1:
                 room.wall_vertices[active_vertex_index].rect.move_ip(event.rel)
-                for i in range(0, len(room.wall_vertices)):
-                    if (room.wall_vertices[i].rect.x - 8 < room.wall_vertices[active_vertex_index].rect.x
-                            < room.wall_vertices[i].rect.x + 8):
-                        room.wall_vertices[active_vertex_index].rect.x = room.wall_vertices[i].rect.x
-                    if (room.wall_vertices[i].rect.y - 8 < room.wall_vertices[active_vertex_index].rect.y
-                            < room.wall_vertices[i].rect.y + 8):
-                        room.wall_vertices[active_vertex_index].rect.y = room.wall_vertices[i].rect.y
+                for index in range(0, len(room.wall_vertices)):     # this for loop handles the vertex snapping
+                    if (room.wall_vertices[index].rect.x - 10 < room.wall_vertices[active_vertex_index].rect.x
+                            < room.wall_vertices[index].rect.x + 10):
+                        room.wall_vertices[active_vertex_index].rect.x = room.wall_vertices[index].rect.x
+                    if (room.wall_vertices[index].rect.y - 10 < room.wall_vertices[active_vertex_index].rect.y
+                            < room.wall_vertices[index].rect.y + 10):
+                        room.wall_vertices[active_vertex_index].rect.y = room.wall_vertices[index].rect.y
+
             elif active_furniture_index != -1:
                 room.furniture_pieces[active_furniture_index].rect.move_ip(event.rel)
             elif rotate_furn_btn_held:
